@@ -28,7 +28,7 @@
 
 ### Установка dplyr
 
-Пакет dplyr можно установить в RStudio Desktop с помощью команды
+Пакет dplyr можно установит в RStudio Desktop с помощью команды
 install.packages(“dplyr”) Далее подключим пакет к текущему проекте с
 помощью library(dplyr)
 
