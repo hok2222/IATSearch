@@ -7,9 +7,9 @@ format:
 engine: knitr
 ---
 
-# №1
+## №1
 
-# In this lesson, we will explore some basic building blocks of the R programming language.
+### In this lesson, we will explore some basic building blocks of the R programming language.
 
 ```{r echo=TRUE}
 5+7
@@ -39,8 +39,8 @@ z * 2 +1000
 
 my_div
 ```
-# №2
-# In this lesson, you'll learn how to examine your local workspace in R and begin to explore the relationship between your workspace and the file system of your machine.
+## №2
+## In this lesson, you'll learn how to examine your local workspace in R and begin to explore the relationship between your workspace and the file system of your machine.
 ```{r}
 getwd()
 ls()

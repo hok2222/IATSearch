@@ -1,9 +1,10 @@
 # LAB1
+
 Шаршов Иван
 
-# №1
+## №1
 
-# In this lesson, we will explore some basic building blocks of the R programming language.
+### In this lesson, we will explore some basic building blocks of the R programming language.
 
 ``` r
 5+7
@@ -82,9 +83,9 @@ my_div
 
     [1] 3.478505 3.181981 2.146460
 
-# №2
+## №2
 
-# In this lesson, you’ll learn how to examine your local workspace in R and begin to explore the relationship between your workspace and the file system of your machine.
+## In this lesson, you'll learn how to examine your local workspace in R and begin to explore the relationship between your workspace and the file system of your machine.
 
 ``` r
 getwd()
@@ -155,9 +156,9 @@ file.info("mytest.R")
 ```
 
              size isdir mode               mtime               ctime
-    mytest.R    0 FALSE  666 2023-09-21 12:09:00 2023-09-21 12:09:00
+    mytest.R    0 FALSE  666 2023-10-10 16:34:41 2023-10-10 16:34:41
                            atime exe
-    mytest.R 2023-09-21 12:09:00  no
+    mytest.R 2023-10-10 16:34:41  no
 
 ``` r
 file.rename("mytest.R","mytest2.R")
@@ -190,7 +191,7 @@ setwd(old.dir)
 
 # №3
 
-# In this lesson, you’ll learn how to create sequences of numbers in R.
+# In this lesson, you'll learn how to create sequences of numbers in R.
 
 ``` r
 1:20
