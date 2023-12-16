@@ -22,180 +22,186 @@ editor: visual
 4.  dplyr 1.1.3
 5.  mir.csv-01.csv
 
-## Задание 
+## Задание
 
-Используя программный пакет dplyr языкампрограммирования R провести анализ журналов и ответить на вопросы.
+Провести анализ журналов
 
 ## Ход работы
 
 ## Подготовка данных
 
 ```{r}
-library('dplyr')
-library('tidyverse')
+library(dplyr)
+library(lubridate)
 ```
 
-## Задание 1
-
-### Импортируйте данные.
 
 ```{r}
-dat1 <-read.csv(file = "mir.csv-01.csv",nrows = 167)
-```
-
-```{r}
-dat2 <-read.csv(file = "mir.csv-01.csv",skip = 169)
-
-```
-
-## Задание 2
-
-### Привести датасеты в вид "аккуратных данных", преобразовать типы столбцов всоответствии с типом данных
-
-```{r}
-dat1$Last.time.seen <- as.POSIXct(dat1$Last.time.seen, format = "%Y-%m-%d %H:%M:%S")
-dat1$First.time.seen <- as.POSIXct(dat1$First.time.seen, format = "%Y-%m-%d %H:%M:%S")
-dat2$Last.time.seen <- as.POSIXct(dat2$Last.time.seen, format = "%Y-%m-%d %H:%M:%S")
-dat2$First.time.seen <- as.POSIXct(dat2$First.time.seen, format = "%Y-%m-%d %H:%M:%S")
-
-```
-
-## Задание 3
-
-### Просмотрите общую структуру данных с помощью функции glimpse()
-
-```{r}
-dat1 %>% glimpse()
-
+dataInputFirst = read.csv("mir.csv-01.csv", nrows = 167)
+dataInputFirst %>% glimpse()
 ```
 
 ```{r}
-dat2 %>% glimpse()
+dataInputFirst <- dataInputFirst %>% 
+  mutate_at(vars(BSSID, Privacy, Cipher, Authentication, LAN.IP, ESSID), trimws) %>%
+  mutate_at(vars(BSSID, Privacy, Cipher, Authentication, LAN.IP, ESSID), na_if, "") %>% 
+  mutate_at(vars(First.time.seen, Last.time.seen), as.POSIXct, format = "%Y-%m-%d %H:%M:%S")
 
+dataInputFirst %>% head
 ```
 
-## Анализ
-
-## Точки доступа
-
-## Задание 1
-
-### Определить небезопасные точки доступа (без шифрования -- OPN)
-
 ```{r}
-dat1 %>% filter(Privacy == ' OPN')
-
+dataInputSecond = read.csv("mir.csv-01.csv", skip = 169)
+dataInputSecond %>% glimpse()
 ```
 
-## Задание 2
+```{r}
+dataInputSecond <- dataInputSecond %>% 
+  mutate_at(vars(Station.MAC, BSSID, Probed.ESSIDs), trimws) %>%
+  mutate_at(vars(Station.MAC, BSSID, Probed.ESSIDs), na_if, "")
 
-### Определить производителя для каждого обнаруженного устройства
+dataInputSecond <- dataInputSecond %>% 
+  mutate_at(vars(First.time.seen, Last.time.seen), 
+            as.POSIXct, 
+            format = "%Y-%m-%d %H:%M:%S") %>%
+  mutate_at(vars(Power, X..packets), as.integer) %>%
+  filter(!is.na(BSSID))
+  
+dataInputSecond %>% head
+```
 
--   00:03:7A Taiyo Yuden Co., Ltd.
--   00:03:7F Atheros Communications, Inc.
--   00:25:00 Apple, Inc.
--   00:26:99 Cisco Systems, Inc
--   E0:D9:E3 Eltex Enterprise Ltd.
--   E8:28:C1 Eltex Enterprise Ltd.
+## Анализ данных
 
-## Задание 3
-
-### Выявить устройства, использующие последнюю версию протокола шифрования WPA3, и названия точек доступа, реализованных на этих устройствах
+## Определить небезопасные точки доступа
 
 ```{r}
-dat1 %>%
+openvifi <- dataInputFirst %>% 
+  filter(grepl("OPN", Privacy)) %>%
+  select(BSSID, ESSID) %>%
+  arrange(BSSID) %>%
+  distinct
+
+openvifi
+```
+
+## Определить производителя для каждого обнаруженного устройства
+```{text}
+00:03:7A Taiyo Yuden Co., Ltd.
+00:03:7F Atheros Communications, Inc.
+00:25:00 Apple, Inc.
+00:26:99 Cisco Systems, Inc
+E0:D9:E3 Eltex Enterprise Ltd.
+E8:28:C1 Eltex Enterprise Ltd.
+```
+
+## Выявить устройства, использующие последнюю версию протокола шифрования WPA3, и названия точек доступа, реализованных на этих устройствах
+
+```{r}
+dataInputFirst %>%
   filter(grepl("WPA3", Privacy)) %>%
   select(BSSID, ESSID, Privacy)
 ```
 
-## Задание 4
-
-### Отсортировать точки доступа по интервалу времени, в течение которого они находились на связи, по убыванию.
+## Отсортировать точки доступа по интервалу времени, в течение которого они находились на связи, по убыванию
 
 ```{r}
-a <- difftime(dat1$Last.time.seen, dat1$First.time.seen, units = "secs")
-tdat1 <- dat1
-tdat1 <- cbind(tdat1,a)
-tdat1 %>% select(BSSID,ESSID, a) %>% arrange(desc(a))
+dataInputFirst_with_intervals <- dataInputFirst %>% 
+  mutate(Time.Interval = Last.time.seen - First.time.seen)
+
+dataInputFirst_with_intervals %>%
+  arrange(desc(Time.Interval)) %>%
+  mutate(Time.Interval = seconds_to_period(Time.Interval)) %>%
+  select(BSSID, First.time.seen, Last.time.seen, Time.Interval) %>%
+  head
 ```
 
-## Задание 5
-
-### Обнаружить топ-10 самых быстрых точек доступа.
+## Обнаружить топ-10 самых быстрых точек доступа
 
 ```{r}
-dat1 %>% select(BSSID,ESSID,Speed) %>% arrange(desc(Speed)) %>% head(10)
+topspots <- dataInputFirst %>%
+  arrange(desc(Speed)) %>%
+  select(BSSID, ESSID, Speed, Privacy) %>%
+  head(10)
+
+topspots
 ```
 
-## Задание 6
-
-### Отсортировать точки доступа по частоте отправки запросов (beacons) в единицу времени по их убыванию.
+## Отсортировать точки доступа по частоте отправки запросов
 
 ```{r}
-dat1 %>% select(BSSID,ESSID,X..beacons) %>% arrange(desc(X..beacons)) 
+dataInputFirst_with_beacon_frequency <- dataInputFirst_with_intervals %>% 
+    mutate(beacon_rate = as.double(X..beacons) / as.integer(Time.Interval))
+
+dataInputFirst_with_beacon_frequency %>%
+  select(BSSID, ESSID, Privacy, X..beacons, Time.Interval, beacon_rate) %>%
+  filter(!is.infinite(beacon_rate)) %>%
+  arrange(desc(beacon_rate)) %>%
+  head
 ```
 
 ## Данные клиентов
 
-## Задание 1
-
-### Определить производителя для каждого обнаруженного устройства
+## Определить производителя для каждого обнаруженного устройства
 
 ```{r}
-dat2 %>%
+dataInputSecond %>%
   filter(grepl("(..:..:..:)(..:..:..)", BSSID)) %>%
   distinct(BSSID)
 ```
 
--   00:03:7F Atheros Communications, Inc.
--   00:0D:97 Hitachi Energy USA Inc.
--   00:23:EB Cisco Systems, Inc
--   00:25:00 Apple, Inc.
--   00:26:99 Cisco Systems, Inc
--   08:3A:2F Guangzhou Juan Intelligent Tech Joint Stock Co.,Ltd
--   0C:80:63 Tp-Link Technologies Co.,Ltd.
--   DC:09:4C Huawei Technologies Co.,Ltd
--   E0:D9:E3 Eltex Enterprise Ltd.
--   E8:28:C1 Eltex Enterprise Ltd.
-
-## Задание 2
-
-### Обнаружить устройства, которые НЕ рандомизируют свой MAC адрес
-
-```{r}
-dat2 %>% select(Station.MAC) %>% filter(!Station.MAC %in% grep(":",dat2$Station.MAC, value = TRUE))
-
+```{text}
+00:03:7F Atheros Communications, Inc.
+00:0D:97 Hitachi Energy USA Inc.
+00:23:EB Cisco Systems, Inc
+00:25:00 Apple, Inc.
+00:26:99 Cisco Systems, Inc
+08:3A:2F Guangzhou Juan Intelligent Tech Joint Stock Co.,Ltd
+0C:80:63 Tp-Link Technologies Co.,Ltd.
+DC:09:4C Huawei Technologies Co.,Ltd
+E0:D9:E3 Eltex Enterprise Ltd.
+E8:28:C1 Eltex Enterprise Ltd.
 ```
 
-## Задание 3
 
-### Кластеризовать запросы от устройств к точкам доступа по их именам.Определить время появления устройства в зоне радиовидимости и времявыхода его из нее.
+## Обнаружить устройства, которые НЕ рандомизируют свой MAC адрес
 
 ```{r}
-clustered_data <- dat2 %>%
+dataInputSecond %>%
+  filter(grepl("(..:..:..:)(..:..:..)", BSSID) & !is.na(Probed.ESSIDs)) %>%
+  select(BSSID, Probed.ESSIDs) %>%
+  group_by(BSSID, Probed.ESSIDs) %>%
+  filter(n() > 1) %>%
+  arrange(BSSID) %>%
+  unique()
+```
+
+## Кластеризовать запросы от устройств к точкам доступа по их именам. Определить время появления устройства в зоне радиовидимости и время выхода его из нее
+
+```{r}
+cData <- dataInputSecond %>%
+  filter(!is.na(Probed.ESSIDs)) %>%
   group_by(Station.MAC, Probed.ESSIDs) %>%
-  arrange(First.time.seen, Last.time.seen)
+  arrange(First.time.seen)
 
-clustered_data
+cSum <- cData %>%
+  summarise(Cluster_Start_Time = min(First.time.seen),
+            Cluster_End_Time = max(Last.time.seen),
+            Total_Power = sum(Power))
+
+cSum %>% head(10)
 ```
 
-## Задание 4
-
-### Оценить стабильность уровня сигнала внури кластера во времени. Выявить наиболее стабильный кластер
+## Оценить стабильность уровня сигнала внури кластера во времени. Выявить наиболее стабильный кластер. Для оценки стабильности оценить математическое ожидание и среднеквадратичное отклонение для каждого найденного кластера.
 
 ```{r}
-stability_metrics <- clustered_data %>%
+sMetric <- cData %>%
   group_by(Station.MAC, Probed.ESSIDs) %>%
   summarise(Mean_Power = mean(Power))
 
-stability_metrics %>%
+sMetric %>%
   arrange((Mean_Power)) %>% head(1)
 ```
 
-## Оценка результатов
-
-В ходе практической работы были импортированы, подготовлены и проанализированы данные трафика Wi-Fi сетей
-
 ## Вывод
 
-Были закреплены навыки работы с пакетом `dplyr`
+Были закреплены навыки работы с пакетом `dplyr` и языком R
